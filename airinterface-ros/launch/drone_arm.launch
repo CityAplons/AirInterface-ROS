@@ -1,0 +1,57 @@
+<?xml version="1.0"?>
+<launch>
+    <!-- ROS Logger setup -->
+    <arg name="log_to" default="screen" />
+
+    <!-- MAVROS -->
+	<arg name="fcu_url" default="/dev/serial0:921600" />    <!-- Change for appropriate autopilot serial port -->
+	<arg name="gcs_url" default="udp://@192.168.137.144" /> <!-- Change IP address for qground host computer -->
+    <include file="$(find mavros)/launch/px4.launch">
+        <arg name="gcs_url" value="$(arg gcs_url)"/>
+        <arg name="fcu_url" value="$(arg fcu_url)"/>
+        <arg name="log_output" value="$(arg log_to)"/>
+    </include>
+
+    <!-- VICON Related Nodes -->
+    <!-- VICON Connection -->
+    <node pkg="vicon_bridge" type="vicon_bridge" name="vicon" output="$(arg log_to)">
+        <param name="stream_mode" value="ClientPull" type="str" />
+        <param name="datastream_hostport" value="192.168.137.1:801" type="str" /> <!-- Change IP address for VICON host computer -->
+        <param name="tf_ref_frame_id" value="world" type="str" />
+    </node>
+    <!-- VICON drone -->
+    <node pkg="airinterface" type="mocap2ros.py" name="drone_vis" output="$(arg log_to)">
+        <param name="in_topic" value="/vicon/DroneArm/DroneArm" />
+        <param name="out_topic" value="/mavros/vision_pose/pose" />
+    </node>
+    <!-- VICON action object -->
+    <node pkg="airinterface" type="mocap2ros.py" name="cup_vis" output="$(arg log_to)">
+        <param name="in_topic" value="/vicon/cup/cup" />
+        <param name="out_topic" value="/unity/cup" />
+    </node>
+    <!-- VICON transforms -->
+    <node pkg="tf" type="static_transform_publisher" name="tf_map"
+        args="0 0 0 -1.5708 0 0 world map 100"/>                                            <!-- VICON <-> ROS -->
+     <node pkg="tf" type="static_transform_publisher" name="tf_base_link"
+        args="0 0 0 0 0 0 map base_link 100"/>                                              <!-- ROS <-> MAV -->
+
+    <!-- Unity Bridge Related Nodes -->
+    <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch">
+		<arg name="port" value="9090"/>
+	</include>
+
+    <!-- Drone Control Node -->
+    <node name="unitycontrol" pkg="airinterface" type="drone_unity.py" output="$(arg log_to)" />
+    <!-- Arm Control Node -->
+    <node name="arm" pkg="airinterface" type="arm_translator.py" output="$(arg log_to)" />
+    <!-- Camera Node -->
+    <node name="usb_cam" pkg="usb_cam" type="usb_cam_node" output="$(arg log_to)" >
+    	<param name="video_device" value="/dev/video0" />
+    	<param name="image_width" value="640" />
+    	<param name="image_height" value="480" />
+        <param name="framerate" value="30" />
+    	<param name="pixel_format" value="mjpeg" />
+    	<param name="camera_frame_id" value="usb_cam" />
+	    <param name="io_method" value="mmap" />
+    </node>
+</launch>

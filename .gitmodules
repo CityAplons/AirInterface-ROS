@@ -1,0 +1,3 @@
+[submodule "VR-based_teleoperation_interface"]
+	path = VR-based_teleoperation_interface
+	url = https://github.com/Y-Grigoriy/VR-based_teleoperation_interface.git

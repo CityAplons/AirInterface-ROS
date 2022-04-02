@@ -1,0 +1,8 @@
+
+---
+# Request constants
+int8 ONGROUND=1
+int8 INAIR=2
+# Request fields
+int8 get_state
+
