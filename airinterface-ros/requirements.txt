@@ -1,0 +1,4 @@
+getch==1.0
+numpy==1.17.4
+pymavlink==2.4.15
+pyserial==3.5
