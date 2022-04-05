@@ -67,7 +67,7 @@ class UnityDroneController:
 
     def set_pose_callback(self, data):
         self.timestamps.append((rospy.Time.now() - data.header.stamp).to_sec())
-        if self.make_delays and len(self.timestamps) >= 500:
+        if self.make_delays and len(self.timestamps) >= self.delays_thresh:
             delay = np.mean(self.timestamps)
             jitter = np.std(np.array(self.timestamps))
             self.delays = np.append(self.delays, [[delay, jitter]], axis=0)
