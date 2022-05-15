@@ -1,5 +1,7 @@
 # DroneArm control algorithms
 
+A part of [VR-based teleoperation interface](https://github.com/Y-Grigoriy/VR-based_teleoperation_interface) project.
+
 > Environment was created and tested on Debian Buster for Raspberry Pi 4 (Raspbian64)
 > ROS Noetic
 
