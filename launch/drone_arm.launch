@@ -20,12 +20,12 @@
         <param name="tf_ref_frame_id" value="world" type="str" />
     </node>
     <!-- VICON drone -->
-    <node pkg="airinterface" type="mocap2ros.py" name="drone_vis" output="$(arg log_to)">
+    <node pkg="airinterface" type="mocap2ros" name="drone_vis" output="$(arg log_to)">
         <param name="in_topic" value="/vicon/DroneArm/DroneArm" />
         <param name="out_topic" value="/mavros/vision_pose/pose" />
     </node>
     <!-- VICON action object -->
-    <node pkg="airinterface" type="mocap2ros.py" name="cup_vis" output="$(arg log_to)">
+    <node pkg="airinterface" type="mocap2ros" name="cup_vis" output="$(arg log_to)">
         <param name="in_topic" value="/vicon/cup/cup" />
         <param name="out_topic" value="/unity/cup" />
     </node>
@@ -41,9 +41,9 @@
 	</include>
 
     <!-- Drone Control Node -->
-    <node name="unitycontrol" pkg="airinterface" type="drone_unity.py" output="$(arg log_to)" />
+    <node name="unitycontrol" pkg="airinterface" type="drone_unity" output="$(arg log_to)" />
     <!-- Arm Control Node -->
-    <node name="arm" pkg="airinterface" type="arm_translator.py" output="$(arg log_to)" />
+    <node name="arm" pkg="airinterface" type="arm_translator" output="$(arg log_to)" />
     <!-- Camera Node -->
     <node name="usb_cam" pkg="usb_cam" type="usb_cam_node" output="$(arg log_to)" >
     	<param name="video_device" value="/dev/video0" />

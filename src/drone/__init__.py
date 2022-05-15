@@ -4,9 +4,8 @@ from pymavlink import mavutil
 from geometry_msgs.msg import PoseStamped
 from mavros_msgs.msg import State, ParamValue, ExtendedState
 from mavros_msgs.srv import CommandBool, SetMode, ParamSet
-from tf.transformations import *
+from tf.transformations import quaternion_from_euler, euler_from_quaternion
 
-from math import *
 import numpy as np
 from numpy.linalg import norm
 import time
@@ -23,7 +22,8 @@ class Drone:
         self.current_state = State()
         self.extended_state = ExtendedState()
 
-        self.setpoint_publisher = rospy.Publisher('/mavros/setpoint_position/local', PoseStamped, queue_size=10)
+        self.setpoint_publisher = rospy.Publisher(
+            '/mavros/setpoint_position/local', PoseStamped, queue_size=10)
         # ROS services
         service_timeout = 30
         rospy.loginfo("Waiting for ROS services")
@@ -33,13 +33,17 @@ class Drone:
             rospy.wait_for_service('/mavros/set_mode', service_timeout)
             rospy.loginfo("ROS services are up")
         except rospy.ROSException:
-            self.fail("failed to connect to services")
-        self.arming_client = rospy.ServiceProxy('/mavros/cmd/arming', CommandBool)
+            rospy.logerr("failed to connect to services")
+        self.arming_client = rospy.ServiceProxy(
+            '/mavros/cmd/arming', CommandBool)
         self.set_mode_client = rospy.ServiceProxy('/mavros/set_mode', SetMode)
-        self.set_param_client = rospy.ServiceProxy('mavros/param/set', ParamSet)
+        self.set_param_client = rospy.ServiceProxy(
+            'mavros/param/set', ParamSet)
         rospy.Subscriber('/mavros/state', State, self.state_callback)
-        rospy.Subscriber('/mavros/local_position/pose', PoseStamped, self.drone_pose_callback)
-        rospy.Subscriber('/mavros/extended_state', ExtendedState, self.extended_state_callback)
+        rospy.Subscriber('/mavros/local_position/pose',
+                         PoseStamped, self.drone_pose_callback)
+        rospy.Subscriber('/mavros/extended_state',
+                         ExtendedState, self.extended_state_callback)
 
     def __set_param(self, param_id, param_value: ParamValue, timeout: float) -> bool:
         """param: PX4 param string, ParamValue, timeout(int): seconds"""
@@ -47,16 +51,16 @@ class Drone:
             value = param_value.integer
         else:
             value = param_value.real
-        rospy.loginfo("Setting PX4 parameter: {0} with value {1}".
-        format(param_id, value))
+        rospy.loginfo(
+            "Setting PX4 parameter: {0} with value {1}".format(param_id, value))
         loop_freq = 1  # Hz
         rate = rospy.Rate(loop_freq)
         for i in range(timeout * loop_freq):
             try:
                 res = self.set_param_client(param_id, param_value)
                 if res.success:
-                    rospy.loginfo("Param {0} set to {1} | seconds: {2} of {3}".
-                    format(param_id, value, i / loop_freq, timeout))
+                    rospy.loginfo("Param {0} set to {1} | seconds: {2} of {3}".format(
+                        param_id, value, i / loop_freq, timeout))
                 return True
             except rospy.ServiceException as e:
                 rospy.logerr(e)
@@ -64,7 +68,7 @@ class Drone:
             try:
                 rate.sleep()
             except rospy.ROSException as e:
-                self.fail(e)
+                rospy.logerr(e)
 
         rospy.logerr(
             "Failed to set param | param_id: {0}, param_value: {1} | timeout(seconds): {2}".
@@ -93,7 +97,7 @@ class Drone:
             try:
                 rate.sleep()
             except rospy.ROSException as e:
-                self.fail(e)
+                rospy.logerr(e)
 
         rospy.logerr(
             "Failed to set mode | new mode: {0}, old mode: {1} | timeout(seconds): {2}".
@@ -130,22 +134,18 @@ class Drone:
         self.extended_state = data
 
     def drone_pose_callback(self, pose_msg):
-        self.pose = np.array([ pose_msg.pose.position.x, pose_msg.pose.position.y, pose_msg.pose.position.z ])
+        self.pose = np.array(
+            [pose_msg.pose.position.x, pose_msg.pose.position.y, pose_msg.pose.position.z])
 
     def arm(self):
         for i in range(self.hz):
-            self.publish_setpoint([0,0,-1])
+            self.publish_setpoint([0, 0, -1])
             self.rate.sleep()
-    
+
         # wait for FCU connection
         while not self.current_state.connected:
             rospy.loginfo('Waiting for FCU connection...')
             self.rate.sleep()
-        
-        ## JMAVSIM ONLY
-        # exempting failsafe from lost RC to allow offboard
-        # rcl_except = ParamValue(1<<2, 0.0)
-        # self.__set_param("COM_RCL_EXCEPT", rcl_except, 5)
 
         prev_request = rospy.get_time()
         prev_state = self.current_state
@@ -153,24 +153,24 @@ class Drone:
             now = rospy.get_time()
             if self.current_state.mode != "OFFBOARD" and (now - prev_request > 2.):
                 self.set_mode_client(base_mode=0, custom_mode="OFFBOARD")
-                prev_request = now 
+                prev_request = now
             else:
                 if not self.current_state.armed and (now - prev_request > 2.):
-                   self.arming_client(True)
-                   prev_request = now 
+                    self.arming_client(True)
+                    prev_request = now
 
             # older versions of PX4 always return success==True, so better to check Status instead
             if prev_state.armed != self.current_state.armed:
                 rospy.loginfo("Vehicle armed: %r" % self.current_state.armed)
 
-            if prev_state.mode != self.current_state.mode: 
+            if prev_state.mode != self.current_state.mode:
                 rospy.loginfo("Current mode: %s" % self.current_state.mode)
             prev_state = self.current_state
 
             if self.current_state.armed:
                 break
-            # Update timestamp and publish sp 
-            self.publish_setpoint([0,0,-1])
+            # Update timestamp and publish sp
+            self.publish_setpoint([0, 0, -1])
             self.rate.sleep()
 
     @staticmethod
@@ -185,30 +185,22 @@ class Drone:
         set_pose.pose.orientation.z = q[2]
         set_pose.pose.orientation.w = q[3]
         return set_pose
+
     def publish_setpoint(self, sp, yaw=np.pi/2):
-        #print(yaw)
         setpoint = self.get_setpoint(sp[0], sp[1], sp[2], yaw)
         setpoint.header.stamp = rospy.Time.now()
         self.setpoint_publisher.publish(setpoint)
+
     def publish_pose(self, pose: PoseStamped):
-        self.yaw = euler_from_quaternion([  pose.pose.orientation.x,
-                                            pose.pose.orientation.y,
-                                            pose.pose.orientation.z,
-                                            pose.pose.orientation.w])[2]
+        self.yaw = euler_from_quaternion([pose.pose.orientation.x,
+                                          pose.pose.orientation.y,
+                                          pose.pose.orientation.z,
+                                          pose.pose.orientation.w])[2]
         pose.header.stamp = rospy.Time.now()
         self.setpoint_publisher.publish(pose)
 
     def takeoff(self, height):
         rospy.loginfo("Takeoff...")
-        # self.__set_mode("AUTO.TAKEOFF", 5)
-        # takeoff_state_confirmed = False
-        # while not takeoff_state_confirmed:
-        #     if self.extended_state.landed_state == mavutil.mavlink.MAV_LANDED_STATE_IN_AIR:
-        #         takeoff_state_confirmed = True
-        #     try:
-        #         self.rate.sleep()
-        #     except rospy.ROSException as e:
-        #         self.fail(e)
         self.sp = self.pose
         while not rospy.is_shutdown() and self.pose[2] < height:
             if rospy.is_shutdown():
@@ -223,8 +215,8 @@ class Drone:
         self.sp = self.pose
         while not rospy.is_shutdown():
             t = time.time()
-            if t - t0 > t_hold and t_hold > 0: break
-            # Update timestamp and publish sp 
+            if t - t0 > t_hold and t_hold > 0:
+                break
             self.publish_setpoint(self.sp, self.yaw)
             self.rate.sleep()
 
@@ -235,11 +227,11 @@ class Drone:
         while not landed_state_confirmed:
             if self.extended_state.landed_state == mavutil.mavlink.MAV_LANDED_STATE_ON_GROUND:
                 landed_state_confirmed = True
-            
+
             try:
                 self.rate.sleep()
             except rospy.ROSException as e:
-                self.fail(e)
+                rospy.logerr(e)
         self.stop()
 
     def stop(self):
@@ -261,9 +253,9 @@ class Drone:
 
     def goTo(self, wp, mode='global', tol=0.05):
         wp = self.transform(wp)
-        if mode=='global':
+        if mode == 'global':
             goal = wp
-        elif mode=='relative':
+        elif mode == 'relative':
             goal = self.pose + wp
         rospy.loginfo("Going to a waypoint...")
         self.sp = self.pose
@@ -272,6 +264,5 @@ class Drone:
                 self.land()
             n = (goal - self.sp) / norm(goal - self.sp)
             self.sp += 0.03 * n
-            #print(self.pose, goal)
             self.publish_setpoint(self.sp, self.yaw)
             self.rate.sleep()

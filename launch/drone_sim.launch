@@ -1,3 +1,4 @@
+<?xml version="1.0"?>
 <launch>
 	<!--SIMULATION-->
 	<arg name="fcu_url" default="udp://:14540@localhost:14557"/> <!-- Change for appropriate Simulation host IP -->
@@ -20,7 +21,7 @@
 	<include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch">
 		<arg name="port" value="9090"/>
 	</include>
-	<node name="unitycontrol" pkg="airinterface" type="drone_unity.py" output="screen">
+	<node name="unitycontrol" pkg="airinterface" type="drone_unity" output="screen">
 		<param name="delays" value="false" />
 		<param name="delays_dir" value="./delays" />
 		<param name="delays_thresh" value="100" />
