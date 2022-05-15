@@ -5,7 +5,7 @@
 
 ## Installation
 
-### 0.Packet dependencies
+### 0.Package dependencies
 
 - [mavros](https://docs.px4.io/master/en/ros/mavros_installation.html)
 - [rosbridge-server](https://github.com/RobotWebTools/rosbridge_suite/tree/ros1)
