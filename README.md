@@ -1,6 +1,6 @@
 # DroneArm control algorithms
 
-> Environment was created on Debian Buster for Raspberry Pi 4 (Raspbian64)
+> Environment was created and tested on Debian Buster for Raspberry Pi 4 (Raspbian64)
 > ROS Noetic
 
 ## Installation
@@ -12,7 +12,7 @@
 - [vicon_bridge](https://github.com/ethz-asl/vicon_bridge)
 - [usb_cam](https://github.com/ros-drivers/usb_cam)
 
-> NOTE: vicon_bridge is available on GitHub. Please, build it from source.
+> NOTE: vicon_bridge is available on GitHub. Please, build it from source. See step 3 below.
 
 ```bash
 sudo apt install ros-noetic-rosbridge-server ros-noetic-mavros ros-noetic-mavros-extras ros-noetic-usb-cam
@@ -30,8 +30,21 @@ Additionally check the serial interface for arm controller in `scripts/arm_trans
 ### 3.Build ROS package in your workspace
 
 ```bash
-catkin_make
+# It is recommended to assemble project in an isolated ROS environment
+mkdir ~/airinterface_ws && cd ~/airinterface_ws
+# Clone the package into ROS workspace of the drone computer
+# NOTE: execute these commands in the workspace's root directory
+git clone -b release https://github.com/CityAplons/AirInterface-ROS.git src/airinterface_drone
+git clone https://github.com/ethz-asl/vicon_bridge src/vicon_bridge
+# Build the workspace
+sudo rosdep init 
+rosdep update
+catkin build
+# Pass installation to your bash environment
+echo "source $PWD/devel/setup.bash" >> ~/.bashrc
 ```
+
+> If `catkin build` unavailable, `catkin_make` should works.
 
 ## Script Execution
 
@@ -51,9 +64,8 @@ roslaunch airinterface drone_sim.launch # Drone + ROS Bridge + Controls
 
 ### After, you could run Unity with ROS# stack
 
-or check control with a simple keyboard teleop script:
+or check Unity controls with a simple keyboard teleoperation script:
 
 ```bash
-rosrun airinterface keyboard_pose.py
+rosrun airinterface keyboard_pose
 ```
-
