@@ -66,15 +66,17 @@ class UnityDroneController:
         return UnitySetStateResponse(True)
 
     def set_pose_callback(self, data):
-        self.timestamps.append((rospy.Time.now() - data.header.stamp).to_sec())
-        if self.make_delays and len(self.timestamps) >= self.delays_thresh:
-            delay = np.mean(self.timestamps)
-            jitter = np.std(np.array(self.timestamps))
-            self.delays = np.append(self.delays, [[delay, jitter]], axis=0)
-            rospy.logwarn("=== Time delay %f, jitter %f ===", delay, jitter)
-            self.timestamps = []
         self.pose = data
-
+        
+        if self.make_delays:  
+            self.timestamps.append((rospy.Time.now() - data.header.stamp).to_sec())
+            if len(self.timestamps) >= self.delays_thresh:
+                delay = np.mean(self.timestamps)
+                jitter = np.std(np.array(self.timestamps))
+                self.delays = np.append(self.delays, [[delay, jitter]], axis=0)
+                rospy.logwarn("=== Time delay %f, jitter %f ===", delay, jitter)
+                self.timestamps = []
+        
     def control_provider(self):
         prev_state = self.mode_state
         while not rospy.is_shutdown():
